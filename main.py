@@ -138,11 +138,29 @@ class KindHandler(webapp2.RequestHandler):
     except:
       self.response.out.write("Unauthorized!")
 
+class Status(webapp2.RequestHandler):
+  def get(self):
+    try:
+      basicAuth(self.request, self.response)
+      q = Kind.all()
+      kinds = q.fetch(999)
 
+      for kind in kinds:
+        q = Expence.all()
+        q.filter("type =", kind.type)
+        expencesOfOneKind = q.fetch(9999)
+        summary = 0
+      
+        for exp in expencesOfOneKind:
+          summary += exp.amount
+
+        self.response.out.write("<p>" + kind.type + ": " + str(summary) + "</p>")
+    except:
+      self.response.out.write("Unauthorized!")
 app = webapp2.WSGIApplication([('/', MainPage), 
                                ('/add', AddHandler),
-                               ('/kind', KindHandler)
-                               
+                               ('/kind', KindHandler),
+                               ('/status', Status)
                                ],
                               debug=True)
 
