@@ -88,6 +88,12 @@ class MainPage(webapp2.RequestHandler):
       currentExpences = sumExpences()
       self.response.out.write("<p>Current expences: " + str(currentExpences) + "</p>")
       self.response.out.write("<p>Estimated monthly: " + str(estimate(currentExpences)) + "</p>")
+      self.response.out.write("""<p>
+      <a href="/status">Summary</a>
+      <a href="/status?csv=true">CSV</a>
+      <a href="/kind">New expence kind</a>
+      </p>
+      """)
     except:
       self.response.out.write("Unauthorized!")
       
@@ -145,6 +151,9 @@ class Status(webapp2.RequestHandler):
       q = Kind.all()
       kinds = q.fetch(999)
 
+      ## try to get CSV parameter to decide which format should be printed
+      isCSV = self.request.get("csv")
+
       for kind in kinds:
         q = Expence.all()
         q.filter("type =", kind.type)
@@ -154,7 +163,11 @@ class Status(webapp2.RequestHandler):
         for exp in expencesOfOneKind:
           summary += exp.amount
 
-        self.response.out.write("<p>" + kind.type + ": " + str(summary) + "</p>")
+
+        if(isCSV == "true"):
+          self.response.out.write(kind.type + ";" + str(summary) + "\n")
+        else:
+          self.response.out.write("<p>" + kind.type + ": " + str(summary) + "</p>")
     except:
       self.response.out.write("Unauthorized!")
 app = webapp2.WSGIApplication([('/', MainPage), 
