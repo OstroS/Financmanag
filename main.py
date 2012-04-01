@@ -192,14 +192,20 @@ class Status(webapp2.RequestHandler):
       ## For each kind calculate sum of expences
       for kind in kinds:
         expencesOfKind = filter(lambda expence: expence[1] == kind.type, expences)
-        listOfExpences = map(lambda expence: expence[0], expencesOfKind)
-        sumOfExpencesOfOneKind = reduce(lambda x,y: x+y, listOfExpences)
 
-        ## Present information
-        if(isCSV == "true"):
-          self.presentCsv(kind, sumOfExpencesOfOneKind)
+        if(len(expencesOfKind) > 0):
+          listOfExpences = map(lambda expence: expence[0], expencesOfKind)
+          sumOfExpencesOfOneKind = reduce(lambda x,y: x+y, listOfExpences)
+
+          ## Present information
+          if(isCSV == "true"):
+            self.presentCsv(kind, sumOfExpencesOfOneKind)
+          else:
+            self.presentHtml(kind, sumOfExpencesOfOneKind)
         else:
-          self.presentHtml(kind, sumOfExpencesOfOneKind)
+          pass
+          # no expences of this kind occured in current month
+
              
     except:
       self.response.out.write("Unauthorized!")
