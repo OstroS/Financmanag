@@ -1,0 +1,17 @@
+Version 0.2.0 - 2012-04-01
+Refactoring:
+	* summary of expences is calucelted using MapFilterReduce
+
+Implemented usecase:
+	* summary present information only from current month
+
+Version 0.1.0 - 2012-03-01
+First release.
+Implemented usecase's:
+	* add expence,
+	* choose expence kind,
+	* add new kind of expence,
+	* forecast estimation of monthly expence,
+	* sum expence of given kind,
+	* present CSV or HTML summary
+	* Authentication based on password stored in DataStore

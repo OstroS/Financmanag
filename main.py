@@ -20,7 +20,7 @@ class Expence(db.Model):
   datetime = db.DateTimeProperty(auto_now_add=True)
 
   def to_tuple(self):
-    return (amount, type, datetime)
+    return (self.amount, str(self.type), self.datetime)
   
 class Kind(db.Model):
   type = db.StringProperty()
@@ -140,8 +140,6 @@ class AddHandler(webapp2.RequestHandler):
     except:
       self.response.out.write("Unauthorized!")
 
-    
-
 class KindHandler(webapp2.RequestHandler):
   def post(self):
     try: 
@@ -165,29 +163,44 @@ class KindHandler(webapp2.RequestHandler):
       self.response.out.write("Unauthorized!")
 
 class Status(webapp2.RequestHandler):
+  def presentHtml(self, kind, summ):
+    self.response.out.write(kind.type)
+    self.response.out.write(": ")
+    self.response.out.write(summ)
+    self.response.out.write("<br>")
+
+  def presentCsv(self, kind, summ):
+    self.response.out.write(str(kind.type) + ";" + str(summ) + "\n")
+    
   def get(self):
     try:
       basicAuth(self.request, self.response)
+
+      ## Fetch Expences from current month
+      expencesFromCurrentMonth = fetchExpencesFromParticularMonth()
+      expences = []
+      for expence in expencesFromCurrentMonth:
+        expences.append(expence.to_tuple())
+
+      ## Fetch Kinds
       q = Kind.all()
       kinds = q.fetch(999)
 
-      ## try to get CSV parameter to decide which format should be printed
+      # Decide which format should be used to present information
       isCSV = self.request.get("csv")
 
+      ## For each kind calculate sum of expences
       for kind in kinds:
-        q = Expence.all()
-        q.filter("type =", kind.type)
-        expencesOfOneKind = q.fetch(9999)
-        summary = 0
-      
-        for exp in expencesOfOneKind:
-          summary += exp.amount
+        expencesOfKind = filter(lambda expence: expence[1] == kind.type, expences)
+        listOfExpences = map(lambda expence: expence[0], expencesOfKind)
+        sumOfExpencesOfOneKind = reduce(lambda x,y: x+y, listOfExpences)
 
-
+        ## Present information
         if(isCSV == "true"):
-          self.response.out.write(kind.type + ";" + str(summary) + "\n")
+          self.presentCsv(kind, sumOfExpencesOfOneKind)
         else:
-          self.response.out.write("<p>" + kind.type + ": " + str(summary) + "</p>")
+          self.presentHtml(kind, sumOfExpencesOfOneKind)
+             
     except:
       self.response.out.write("Unauthorized!")
 
