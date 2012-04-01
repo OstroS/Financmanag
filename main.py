@@ -6,6 +6,7 @@ import md5
 import base64
 
 from datetime import date
+from datetime import datetime
 from google.appengine.ext import db
 from google.appengine.api import users
 
@@ -22,9 +23,23 @@ class Kind(db.Model):
   type = db.StringProperty()
   freq = db.IntegerProperty()
 
-def sumExpences():
+def sumExpences(now = datetime.now()):
+  ## Calculate current month begin and end
+  #now = datetime.now()
+  beginOfMonth = datetime(now.year, now.month, 1)
+  beginOfNextMonth = 0
+  if(beginOfMonth.month == 12):
+    beginOfNextMonth = datetime(now.year + 1, 1, 1,0,0,0)
+  else:
+    beginOfNextMonth = datetime(now.year, now.month+1,1,0,0,0)
+
+  ## Fetch all from current month
   q = Expence.all()
+  q.filter('datetime >=', beginOfMonth)
+  q.filter('datetime <', beginOfNextMonth)
   expences = q.fetch(99999)
+
+  ## Sum all expences from current month
   summary = 0
   for expence in expences:
     summary += expence.amount
@@ -35,8 +50,6 @@ def estimate(currentSum):
   dailyExpence = currentSum/day
   estimatedMonthlyExpence = dailyExpence * 30
   return estimatedMonthlyExpence
-  
-    
   
 def basicAuth(request, response):
   try:
@@ -170,6 +183,8 @@ class Status(webapp2.RequestHandler):
           self.response.out.write("<p>" + kind.type + ": " + str(summary) + "</p>")
     except:
       self.response.out.write("Unauthorized!")
+
+## Request mapping
 app = webapp2.WSGIApplication([('/', MainPage), 
                                ('/add', AddHandler),
                                ('/kind', KindHandler),
