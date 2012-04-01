@@ -18,14 +18,17 @@ class Expence(db.Model):
   amount = db.FloatProperty()
   type = db.StringProperty()
   datetime = db.DateTimeProperty(auto_now_add=True)
+
+  def to_tuple(self):
+    return (amount, type, datetime)
   
 class Kind(db.Model):
   type = db.StringProperty()
   freq = db.IntegerProperty()
 
-def sumExpences(now = datetime.now()):
-  ## Calculate current month begin and end
-  #now = datetime.now()
+## Fetch Expences from particular mont - current month as default
+def fetchExpencesFromParticularMonth(now = datetime.now()):
+  ## Calculate given month begin and end
   beginOfMonth = datetime(now.year, now.month, 1)
   beginOfNextMonth = 0
   if(beginOfMonth.month == 12):
@@ -33,12 +36,16 @@ def sumExpences(now = datetime.now()):
   else:
     beginOfNextMonth = datetime(now.year, now.month+1,1,0,0,0)
 
-  ## Fetch all from current month
+  ## Fetch all from given month month
   q = Expence.all()
   q.filter('datetime >=', beginOfMonth)
   q.filter('datetime <', beginOfNextMonth)
   expences = q.fetch(99999)
+  return expences;
 
+def sumExpences(now = datetime.now()):
+  expences = fetchExpencesFromParticularMonth(now);
+  
   ## Sum all expences from current month
   summary = 0
   for expence in expences:
