@@ -1,15 +1,15 @@
-Version 0.2.1 - 2012-04-01
+Version 0-2-1 - 2012-04-01
 Bugfix:
 	* checks if list of expences of one kind is not empty
 
-Version 0.2.0 - 2012-04-01
+Version 0-2-0 - 2012-04-01
 Refactoring:
 	* summary of expences is calucelted using MapFilterReduce
 
 Implemented usecase:
 	* summary present information only from current month
 
-Version 0.1.0 - 2012-03-01
+Version 0-1-0 - 2012-03-01
 First release.
 Implemented usecase's:
 	* add expence,
