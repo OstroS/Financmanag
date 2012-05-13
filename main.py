@@ -176,8 +176,15 @@ class Status(webapp2.RequestHandler):
     try:
       basicAuth(self.request, self.response)
 
-      ## Fetch Expences from current month
-      expencesFromCurrentMonth = fetchExpencesFromParticularMonth()
+      ## If year and month is passed - get expences for given month
+      if((self.request.get("year") != "") and (self.request.get("month") != "")):
+        givenMonth = datetime(int(self.request.get("year")), int(self.request.get("month")), 1)
+        expencesFromCurrentMonth = fetchExpencesFromParticularMonth(givenMonth)
+        
+      else:
+        ## Fetch Expences from current month
+        expencesFromCurrentMonth = fetchExpencesFromParticularMonth()
+     
       expences = []
       for expence in expencesFromCurrentMonth:
         expences.append(expence.to_tuple())
