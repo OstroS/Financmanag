@@ -1,5 +1,5 @@
 application: financmanag
-version: 0-2-3 
+version: 0-3-0 
 runtime: python27
 api_version: 1
 threadsafe: true
