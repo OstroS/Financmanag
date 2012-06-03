@@ -26,6 +26,14 @@ class Kind(db.Model):
   type = db.StringProperty()
   freq = db.IntegerProperty()
 
+class ExpenceLimit(db.Model):
+  type = db.StringProperty()
+  month = db.DateProperty(auto_now_add=True)
+  value = db.FloatProperty()
+
+  def __str__(self):
+    return "Limit {type = " + str(self.type) + ", month = " + str(self.month) + ", value = " + str(self.value) + "}"
+
 ## Fetch Expences from particular mont - current month as default
 def fetchExpencesFromParticularMonth(now = datetime.now()):
   ## Calculate given month begin and end
@@ -57,6 +65,25 @@ def estimate(currentSum):
   dailyExpence = currentSum/day
   estimatedMonthlyExpence = dailyExpence * 30
   return estimatedMonthlyExpence
+
+def getLimitsForGivenMonth(month = date.today()):
+  q = ExpenceLimit.all()
+
+  if(month.month == 12):
+    beginOfNextMonth = date(month.year + 1, 1 , 1)
+  else:
+    beginOfNextMonth = date(month.year, month.month + 1, 1)
+
+  q.filter("month >", date(month.year, month.month, 1))
+  q.filter("month < ", beginOfNextMonth)
+  limits = q.fetch(9999)
+  return limits
+
+def getAllKinds():
+  q = Kind.all()
+  q.order("-freq")
+  kinds = q.fetch(9999)
+  return kinds
   
 def basicAuth(request, response):
   try:
@@ -85,9 +112,7 @@ class MainPage(webapp2.RequestHandler):
     try:
       basicAuth(self.request, self.response)
       
-      q = Kind.all()
-      q.order("-freq")
-      kinds = q.fetch(9999)
+      kinds = getAllKinds()
       
       self.response.headers['Content-Type'] = 'text/html'
       self.response.out.write('<html><body>')
@@ -163,13 +188,15 @@ class KindHandler(webapp2.RequestHandler):
       self.response.out.write("Unauthorized!")
 
 class Status(webapp2.RequestHandler):
-  def presentHtml(self, kind, summ):
+  def presentHtml(self, kind, summ, limit):
     self.response.out.write(kind.type)
     self.response.out.write(": ")
     self.response.out.write(summ)
+    self.response.out.write(" limit: ")
+    self.response.out.write(limit)
     self.response.out.write("<br>")
 
-  def presentCsv(self, kind, summ):
+  def presentCsv(self, kind, summ, limit):
     self.response.out.write(str(kind.type) + ";" + str(summ) + "\n")
     
   def get(self):
@@ -193,6 +220,9 @@ class Status(webapp2.RequestHandler):
       q = Kind.all()
       kinds = q.fetch(999)
 
+      ## get limits
+      limits = getLimitsForGivenMonth()
+
       # Decide which format should be used to present information
       isCSV = self.request.get("csv")
 
@@ -200,28 +230,77 @@ class Status(webapp2.RequestHandler):
       for kind in kinds:
         expencesOfKind = filter(lambda expence: expence[1] == kind.type, expences)
 
+        ## calculate limit - if no limit found assume zero
+        liArray = filter(lambda l: l.type == kind.type, limits)
+        if(len(liArray) > 0):
+          limit = liArray[0].value
+        else:
+          limit = 0
+
+
         if(len(expencesOfKind) > 0):
           listOfExpences = map(lambda expence: expence[0], expencesOfKind)
           sumOfExpencesOfOneKind = reduce(lambda x,y: x+y, listOfExpences)
 
           ## Present information
           if(isCSV == "true"):
-            self.presentCsv(kind, sumOfExpencesOfOneKind)
+            self.presentCsv(kind, sumOfExpencesOfOneKind, limit)
           else:
-            self.presentHtml(kind, sumOfExpencesOfOneKind)
+            self.presentHtml(kind, sumOfExpencesOfOneKind, limit)
         else:
           pass
           # no expences of this kind occured in current month
 
-             
+    
     except:
       self.response.out.write("Unauthorized!")
 
+class AddExpenceLimit(webapp2.RequestHandler):
+  def post(self):
+    try:
+      basicAuth(self.request, self.response)
+
+      expenceType = str(self.request.get("type"))
+      expenceValue = float(self.request.get("value"))
+
+      self.response.out.write(expenceType + "<br>" + str(expenceValue))
+
+      expenceLimit = ExpenceLimit(type = expenceType, value = expenceValue)
+      expenceLimit.put()
+      
+    except:
+      self.response.out.write("Unauthorized!")
+
+  ## present form where user can define his expence limit for current month
+  def get(self):
+    try:
+      basicAuth(self.request, self.response)
+      self.response.write("""
+      <p>Add new expence limit</p>
+      <form action = "./add" method = "POST">
+      <p><input type="text" name="value" /></p>
+        
+      <p>Type: <select name="type">""")
+
+      kinds = getAllKinds()
+      
+      for kind in kinds:
+        self.response.out.write("<option>" + kind.type + "</option>")
+          
+      self.response.out.write("""</select></p>
+          <p><input type="submit" value="Add" /></p>
+      </form>
+      """)
+
+    except:
+      self.response.out.write("Unauthorized!")
+    
 ## Request mapping
 app = webapp2.WSGIApplication([('/', MainPage), 
                                ('/add', AddHandler),
                                ('/kind', KindHandler),
-                               ('/status', Status)
+                               ('/status', Status),
+                               ('/limit/add', AddExpenceLimit)
                                ],
                               debug=True)
 
